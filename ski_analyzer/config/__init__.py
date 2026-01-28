@@ -1,0 +1,5 @@
+"""
+Конфигурация
+"""
+from .settings import *
+
