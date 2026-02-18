@@ -31,27 +31,64 @@ class LLMRecommendationGenerator:
         Returns:
             Отформатированная строка
         """
-        feedback = analysis_result.get("feedback", [])
+        # get_detailed_report возвращает "angle_analysis", а не "feedback"
+        feedback = analysis_result.get("angle_analysis", analysis_result.get("feedback", []))
         overall_score = analysis_result.get("overall_score", 0)
         
-        text = f"Общий балл техники: {overall_score}/100\n\n"
-        text += "Детальный анализ по углам:\n"
+        # Определяем общий уровень техники словами
+        if overall_score >= 80:
+            score_text = "отличная"
+        elif overall_score >= 60:
+            score_text = "хорошая"
+        elif overall_score >= 40:
+            score_text = "средняя"
+        else:
+            score_text = "требует улучшения"
         
-        for fb in feedback:
-            angle_name = fb["angle"]
-            angle_ru = {
-                "left_knee_angle": "Левое колено",
-                "right_knee_angle": "Правое колено",
-                "left_body_angle": "Наклон корпуса (левая сторона)",
-                "right_body_angle": "Наклон корпуса (правая сторона)"
-            }.get(angle_name, angle_name)
-            
-            text += f"\n{angle_ru}:\n"
-            text += f"  - Доля фазы вне нормы: {fb['percent_bad']:.1f}%\n"
-            text += f"  - Среднее отклонение от эталона: {fb['mean_diff_deg']:+.1f}°\n"
-            text += f"  - Максимальное отклонение: {fb['max_diff_deg']:.1f}°\n"
-            if fb.get('is_critical'):
-                text += f"  - ⚠ Требует особого внимания\n"
+        text = f"Общая оценка техники: {score_text}\n\n"
+        text += "Найденные проблемы:\n"
+        
+        if not feedback:
+            text += "  Значимых проблем не обнаружено.\n"
+        else:
+            for fb in feedback:
+                angle_name = fb["angle"]
+                angle_ru = {
+                    "left_knee_angle": "Левое колено",
+                    "right_knee_angle": "Правое колено",
+                    "left_body_angle": "Наклон корпуса (левая сторона)",
+                    "right_body_angle": "Наклон корпуса (правая сторона)"
+                }.get(angle_name, angle_name)
+                
+                # Определяем проблему словами без чисел
+                mean_diff = fb.get('mean_diff_deg', 0)
+                is_critical = fb.get('is_critical', False)
+                
+                # Описание проблемы простым языком
+                if "knee" in angle_name:
+                    if mean_diff < -15:
+                        problem = f"{angle_ru}: слишком сильно согнуто (излишняя посадка)"
+                    elif mean_diff > 10:
+                        problem = f"{angle_ru}: недостаточно согнуто (нужно больше сгибать)"
+                    else:
+                        problem = f"{angle_ru}: есть отклонения от правильной техники"
+                elif "body" in angle_name:
+                    if mean_diff < -20:
+                        problem = f"{angle_ru}: корпус слишком сильно подан вперед"
+                    elif mean_diff > 10:
+                        problem = f"{angle_ru}: корпус отклонен назад (нужно сместить центр тяжести вперед)"
+                    else:
+                        problem = f"{angle_ru}: есть отклонения в наклоне корпуса"
+                else:
+                    problem = f"{angle_ru}: есть отклонения от эталона"
+                
+                # Определяем серьезность
+                if is_critical:
+                    severity = "серьезная проблема"
+                else:
+                    severity = "заметная проблема"
+                
+                text += f"- {problem} ({severity})\n"
         
         return text
     
@@ -80,27 +117,42 @@ class LLMRecommendationGenerator:
 - Цели: {goals}
 """
         
-        prompt = f"""Ты профессиональный инструктор по горным лыжам. Проанализируй технику катания и дай конкретные рекомендации.
+        prompt = f"""Ты профессиональный инструктор по горным лыжам. Проанализируй технику катания и дай понятные рекомендации.
 
 {analysis_text}
 {profile_text}
 
-ЗАДАНИЕ: Дай 3-5 конкретных рекомендаций по улучшению техники.
+ЗАДАНИЕ: Напиши ответ в двух частях - ошибки и рекомендации.
 
-ТРЕБОВАНИЯ:
-- Каждая рекомендация на отдельной строке
-- Начинай с номера: 1. 2. 3. и т.д.
-- Каждая рекомендация должна быть конкретной и практичной
-- Укажи конкретные действия что делать
+ФОРМАТ ОТВЕТА (строго соблюдай):
+
+Ошибки:
+- Перечисли найденные проблемы простым языком
+- Каждая ошибка на отдельной строке, начинается с "- "
+- БЕЗ чисел, процентов, градусов, баллов - только понятные описания
+- Примеры: "Корпус отклонен назад", "Колени недостаточно согнуты", "Излишняя посадка"
+- 3-5 ошибок максимум, каждая не длиннее 10 слов
+
+Рекомендации:
+1. Конкретное действие или упражнение
+2. Следующее действие или упражнение
+3. И так далее (3-5 рекомендаций)
+
+Правила:
+- НЕ используй числа, проценты, градусы, баллы в ответе - только слова
+- Пиши простым языком, понятным новичку
 - Будь позитивным и мотивирующим
-- Пиши кратко, но информативно (2-3 предложения на рекомендацию)
+- Будь кратким - каждая ошибка максимум 8-10 слов
+- Каждая рекомендация максимум 2 предложения
+- Начинай сразу с "Ошибки:", без вступлений и приветствий
+- Не упоминай эталон, проценты, градусы, фразы "фаза вне нормы"
 
-ФОРМАТ ОТВЕТА:
-1. [Первая рекомендация с конкретными действиями]
-2. [Вторая рекомендация с конкретными действиями]
-3. [Третья рекомендация с конкретными действиями]
+ВАЖНО: 
+- Начинай сразу с "Ошибки:", БЕЗ приветствий
+- Формат строго: сначала "Ошибки:", потом "Рекомендации:"
+- Никаких чисел, процентов, градусов, баллов - только понятные слова
 
-ВАЖНО: Начинай сразу с рекомендаций, БЕЗ приветствий, вступлений и общих фраз."""
+"""
         
         return prompt
     
@@ -138,23 +190,15 @@ class LLMRecommendationGenerator:
             # Настраиваем API ключ
             genai.configure(api_key=self.api_key)
             
-            # Используем актуальную модель (gemini-2.5-flash - быстрая и бесплатная)
+            # Используем актуальную модель
             # Альтернативы: gemini-2.5-pro (более мощная), gemini-2.0-flash
             model = genai.GenerativeModel('models/gemini-2.5-flash')
             
-            # Формируем полный промпт с системным сообщением
-            full_prompt = (
-                "Ты профессиональный инструктор по горным лыжам. "
-                "Дай конкретные и практичные рекомендации по улучшению техники. "
-                "Будь позитивным и мотивирующим.\n\n"
-                f"{prompt}"
-            )
-            
-            # Генерируем ответ
+            # Генерируем ответ (промпт уже содержит все инструкции)
             response = model.generate_content(
-                full_prompt,
+                prompt,
                 generation_config=genai.types.GenerationConfig(
-                    temperature=0.7,
+                    temperature=0.4,
                     max_output_tokens=2000,  # Увеличено для полных рекомендаций
                 )
             )
@@ -204,8 +248,8 @@ class LLMRecommendationGenerator:
                             "content": prompt
                         }
                     ],
-                    temperature=0.7,
-                    max_tokens=500
+                    temperature=0.4,
+                    max_tokens=1000
                 )
                 
                 return response.choices[0].message.content
@@ -228,8 +272,8 @@ class LLMRecommendationGenerator:
                             "content": prompt
                         }
                     ],
-                    temperature=0.7,
-                    max_tokens=500
+                    temperature=0.4,
+                    max_tokens=1000
                 )
                 
                 return response.choices[0].message.content
@@ -248,14 +292,14 @@ class LLMRecommendationGenerator:
     
     def generate_recommendations(self, 
                                  analysis_result: Dict,
-                                 user_profile: Optional[Dict] = None) -> List[str]:
+                                 user_profile: Optional[Dict] = None) -> Dict[str, List[str]]:
         """
         Генерирует рекомендации через LLM
-        
+
         Args:
             analysis_result: Результат анализа от SkiAnalyzer
             user_profile: Профиль пользователя
-            
+
         Returns:
             Список рекомендаций
         """
@@ -263,64 +307,62 @@ class LLMRecommendationGenerator:
         llm_response = self.call_llm_api(prompt)
         
         # Парсим ответ - разбиваем на рекомендации
-        recommendations = []
-        
-        # Убираем возможные приветствия и вступления
-        response_clean = llm_response.strip()
-        
-        # Ищем строки начинающиеся с цифр (1. 2. 3. и т.д.)
-        lines = response_clean.split('\n')
+        # Парсим ответ на два списка: errors (строки с "-") и actions (строки "1.", "2." и т.д.)
+        errors: List[str] = []
+        actions: List[str] = []
+
+        response_clean = (llm_response or "").strip()
+        lines = [ln.strip() for ln in response_clean.split("\n") if ln.strip()]
+
+        # Определяем секцию (ошибки или рекомендации)
+        current_section = None
         
         for line in lines:
-            line = line.strip()
-            if not line:
+            # Определяем секцию по заголовкам
+            low = line.lower().strip(":")
+            if low == "ошибки":
+                current_section = "errors"
                 continue
-            
-            # Пропускаем комментарии
-            if line.startswith('#') or (line.startswith('*') and len(line) < 3):
+            elif low in ["рекомендации", "что делать"]:
+                current_section = "actions"
                 continue
+
+            # ошибки: начинаются с "- "
+            if line.startswith("-"):
+                txt = line.lstrip("-").strip()
+                if txt:
+                    errors.append(txt)
+                continue
+
+            # рекомендации: начинаются с "1." / "2." / "3." ...
+            if len(line) >= 2 and line[0].isdigit():
+                # поддержка "1." и "1)":
+                if line[1] in [".", ")"]:
+                    txt = line[2:].strip()
+                    if txt:
+                        actions.append(txt)
+                    continue
             
-            # Если строка начинается с цифры и точки (1. 2. 3.)
-            if line[0].isdigit() and len(line) > 2 and (line[1] == '.' or line[1:3] == '. '):
-                # Извлекаем номер и текст
-                parts = line.split('.', 1)
-                if len(parts) == 2:
-                    text = parts[1].strip()
-                    if text and len(text) > 10:  # Минимум 10 символов
-                        recommendations.append(text)
-            # Если строка начинается с маркера
-            elif line.startswith('-') or line.startswith('•'):
-                text = line.lstrip('-• ').strip()
-                if text and len(text) > 10:
-                    recommendations.append(text)
-            # Если строка достаточно длинная и не начинается с приветствия
-            elif len(line) > 30 and not any(word in line.lower()[:50] for word in ['привет', 'здравствуй', 'отлично что ты']):
-                recommendations.append(line)
-        
-        # Если не нашли структурированных рекомендаций, пытаемся разбить по предложениям
-        if not recommendations:
-            # Убираем приветствия
-            response_no_greeting = response_clean
-            for greeting in ['Привет!', 'Здравствуй!', 'Отлично, что ты здесь', 'Я очень рад']:
-                if greeting in response_no_greeting:
-                    idx = response_no_greeting.find(greeting)
-                    if idx != -1:
-                        response_no_greeting = response_no_greeting[idx + len(greeting):].strip()
-            
-            # Разбиваем на предложения
-            sentences = [s.strip() for s in response_no_greeting.replace('. ', '.\n').split('\n') if len(s.strip()) > 30]
-            recommendations = sentences[:5]  # Максимум 5 рекомендаций
-        
-        # Если все еще пусто, возвращаем весь ответ как одну рекомендацию
-        if not recommendations:
-            clean_response = response_clean
-            if clean_response.lower().startswith('привет'):
-                sentences = clean_response.split('.')
-                if len(sentences) > 1:
-                    clean_response = '.'.join(sentences[1:]).strip()
-            recommendations = [clean_response] if clean_response else [llm_response]
-        
-        return recommendations
+            # Если секция определена, добавляем строки в соответствующую секцию
+            if current_section == "errors" and line and not line.startswith("-"):
+                # Если это не маркированный список, но мы в секции ошибок, добавляем как ошибку
+                if not any(char.isdigit() for char in line[:3]):  # Не начинается с цифры
+                    errors.append(line)
+            elif current_section == "actions" and line:
+                # Если это не пронумерованный список, но мы в секции рекомендаций
+                if not (len(line) >= 2 and line[0].isdigit() and line[1] in [".", ")"]):
+                    actions.append(line)
+
+        # Fallback: если модель не соблюла формат
+        if not actions and response_clean:
+            # пусть весь текст станет одной рекомендацией
+            actions = [response_clean]
+
+        # Ограничим длину (на всякий случай)
+        errors = errors[:5]
+        actions = actions[:5]
+
+        return {"errors": errors, "actions": actions}
 
 
 # Пример использования
