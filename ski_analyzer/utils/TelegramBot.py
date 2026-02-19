@@ -2,7 +2,7 @@ import telebot
 import tempfile
 import os
 
-bot = telebot.TeleBot("8576727122:AAEZCsTFz4O0NgsnA735LYfXRz1PQ6AbO9s")
+bot = telebot.TeleBot("")
 
 @bot.message_handler(commands=['start', 'help'])
 def send_welcome(message):
