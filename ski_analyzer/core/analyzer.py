@@ -1,6 +1,4 @@
-"""
-Модуль для анализа техники и генерации рекомендаций
-"""
+"""Анализ техники по сравнению с эталоном и генерация рекомендаций."""
 import pandas as pd
 import numpy as np
 from typing import Dict, List, Optional
@@ -11,15 +9,9 @@ from ..config.settings import (
 
 
 class SkiAnalyzer:
-    """Класс для анализа техники катания и генерации рекомендаций"""
-    
+    """Сравнение углов пользователя с эталоном, отчёт и рекомендации."""
+
     def __init__(self, template_path: Optional[str] = None):
-        """
-        Инициализация анализатора
-        
-        Args:
-            template_path: Путь к файлу эталона (по умолчанию из настроек)
-        """
         if template_path is None:
             template_path = TEMPLATE_FILE
         
@@ -29,21 +21,10 @@ class SkiAnalyzer:
         self.template = pd.read_csv(template_path, sep=';')
     
     def analyze(self, user_angles_path: str) -> Dict:
-        """
-        Анализирует технику пользователя по сравнению с эталоном
-        
-        Args:
-            user_angles_path: Путь к файлу с углами пользователя (ресемплированному)
-            
-        Returns:
-            Словарь с результатами анализа
-        """
+        """Анализ пользовательских углов относительно эталона."""
         if not Path(user_angles_path).exists():
             raise FileNotFoundError(f"Файл не найден: {user_angles_path}")
-        
         user = pd.read_csv(user_angles_path, sep=';')
-        
-        # Проверяем длину
         if len(self.template) != len(user):
             raise ValueError(
                 f"Длины не совпадают: template={len(self.template)}, user={len(user)}. "
@@ -67,8 +48,6 @@ class SkiAnalyzer:
             
             diff = y - mean
             abs_diff = np.abs(diff)
-            
-            # Определяем отклонения
             bad_mask = (abs_diff > ABS_THRESHOLDS[angle]) | (abs_diff > K_STD * std)
             percent_bad = 100 * bad_mask.sum() / len(bad_mask)
             mean_diff = float(diff.mean())
@@ -88,34 +67,16 @@ class SkiAnalyzer:
         }
     
     def _calculate_overall_score(self, feedback: List[Dict]) -> float:
-        """
-        Вычисляет общий балл (0-100)
-        
-        Args:
-            feedback: Список результатов анализа по углам
-            
-        Returns:
-            Общий балл
-        """
+        """Общий балл 0–100 по результатам по углам."""
         if not feedback:
             return 0.0
         
-        # Средний процент отклонений (инвертируем для получения балла)
         avg_bad = np.mean([f["percent_bad"] for f in feedback])
         score = max(0, 100 - avg_bad)
         return round(score, 1)
     
     def generate_recommendations(self, analysis_result: Dict, use_llm: bool = False) -> List[str]:
-        """
-        Генерирует текстовые рекомендации на основе анализа
-        
-        Args:
-            analysis_result: Результат анализа от метода analyze()
-            use_llm: Использовать ли LLM для генерации (пока не реализовано)
-            
-        Returns:
-            Список рекомендаций
-        """
+        """Текстовые рекомендации по результатам анализа."""
         recommendations = []
         feedback = analysis_result["feedback"]
         
@@ -125,7 +86,7 @@ class SkiAnalyzer:
             mean_diff = fb["mean_diff_deg"]
             
             if p_bad < BAD_PERCENT_THRESHOLD:
-                continue  # Пропускаем если все в норме
+                continue
             
             if "knee" in angle:
                 side = "левое" if "left" in angle else "правое"
@@ -159,15 +120,7 @@ class SkiAnalyzer:
         return recommendations
     
     def get_detailed_report(self, user_angles_path: str) -> Dict:
-        """
-        Получает детальный отчет с анализом и рекомендациями
-        
-        Args:
-            user_angles_path: Путь к файлу с углами пользователя
-            
-        Returns:
-            Словарь с детальным отчетом
-        """
+        """Отчёт: оценка, анализ по углам, список рекомендаций."""
         analysis = self.analyze(user_angles_path)
         recommendations = self.generate_recommendations(analysis)
         

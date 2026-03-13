@@ -1,37 +1,17 @@
-"""
-Модуль для генерации рекомендаций через LLM
-Пример интеграции с OpenAI/Anthropic API
-"""
+"""Генерация рекомендаций через LLM (Gemini, OpenAI)."""
 from typing import Dict, List, Optional
 import json
 
 
 class LLMRecommendationGenerator:
-    """Генератор рекомендаций через LLM"""
-    
+    """Генератор рекомендаций через LLM."""
+
     def __init__(self, api_key: Optional[str] = None, provider: str = "gemini"):
-        """
-        Инициализация генератора
-        
-        Args:
-            api_key: API ключ для LLM провайдера
-            provider: Провайдер LLM ("gemini", "openai", "anthropic", etc.)
-        """
         self.api_key = api_key
-        self.provider = provider.lower()  # Приводим к нижнему регистру
-        # Здесь можно инициализировать клиент API
-    
+        self.provider = provider.lower()
+
     def format_analysis_for_llm(self, analysis_result: Dict) -> str:
-        """
-        Форматирует результаты анализа для LLM промпта
-        
-        Args:
-            analysis_result: Результат анализа от SkiAnalyzer
-            
-        Returns:
-            Отформатированная строка
-        """
-        # get_detailed_report возвращает "angle_analysis", а не "feedback"
+        """Форматирует результаты анализа для промпта LLM."""
         feedback = analysis_result.get("angle_analysis", analysis_result.get("feedback", []))
         overall_score = analysis_result.get("overall_score", 0)
         
@@ -59,12 +39,8 @@ class LLMRecommendationGenerator:
                     "left_body_angle": "Наклон корпуса (левая сторона)",
                     "right_body_angle": "Наклон корпуса (правая сторона)"
                 }.get(angle_name, angle_name)
-                
-                # Определяем проблему словами без чисел
                 mean_diff = fb.get('mean_diff_deg', 0)
                 is_critical = fb.get('is_critical', False)
-                
-                # Описание проблемы простым языком
                 if "knee" in angle_name:
                     if mean_diff < -15:
                         problem = f"{angle_ru}: слишком сильно согнуто (излишняя посадка)"
@@ -81,8 +57,6 @@ class LLMRecommendationGenerator:
                         problem = f"{angle_ru}: есть отклонения в наклоне корпуса"
                 else:
                     problem = f"{angle_ru}: есть отклонения от эталона"
-                
-                # Определяем серьезность
                 if is_critical:
                     severity = "серьезная проблема"
                 else:
@@ -93,16 +67,7 @@ class LLMRecommendationGenerator:
         return text
     
     def generate_prompt(self, analysis_result: Dict, user_profile: Optional[Dict] = None) -> str:
-        """
-        Генерирует промпт для LLM
-        
-        Args:
-            analysis_result: Результат анализа
-            user_profile: Профиль пользователя (уровень, опыт и т.д.)
-            
-        Returns:
-            Промпт для LLM
-        """
+        """Собирает промпт для LLM из анализа и профиля пользователя."""
         analysis_text = self.format_analysis_for_llm(analysis_result)
         
         profile_text = ""
@@ -157,19 +122,9 @@ class LLMRecommendationGenerator:
         return prompt
     
     def call_llm_api(self, prompt: str) -> str:
-        """
-        Вызывает LLM API (Gemini, OpenAI или другие)
-        
-        Args:
-            prompt: Промпт для LLM
-            
-        Returns:
-            Ответ от LLM
-        """
+        """Вызов API выбранного провайдера (Gemini или OpenAI)."""
         if not self.api_key:
             return "Ошибка: API ключ не установлен. Установите API ключ в переменных окружения."
-        
-        # Выбираем провайдера
         if self.provider == "gemini":
             return self._call_gemini(prompt)
         elif self.provider == "openai":
@@ -178,32 +133,20 @@ class LLMRecommendationGenerator:
             return f"Ошибка: Неподдерживаемый провайдер '{self.provider}'. Используйте 'gemini' или 'openai'."
     
     def _call_gemini(self, prompt: str) -> str:
-        """
-        Вызывает Google Gemini API
-        """
         if not self.api_key:
             return "Ошибка: Gemini API ключ не установлен."
         
         try:
             import google.generativeai as genai
-            
-            # Настраиваем API ключ
             genai.configure(api_key=self.api_key)
-            
-            # Используем актуальную модель
-            # Альтернативы: gemini-2.5-pro (более мощная), gemini-2.0-flash
             model = genai.GenerativeModel('models/gemini-2.5-flash')
-            
-            # Генерируем ответ (промпт уже содержит все инструкции)
             response = model.generate_content(
                 prompt,
                 generation_config=genai.types.GenerationConfig(
                     temperature=0.4,
-                    max_output_tokens=2000,  # Увеличено для полных рекомендаций
+                    max_output_tokens=2000,
                 )
             )
-            
-            # Проверяем что ответ не обрезан
             result_text = response.text
             if not result_text or len(result_text) < 50:
                 return "Ошибка: Gemini вернул слишком короткий ответ. Попробуйте снова."
@@ -222,14 +165,10 @@ class LLMRecommendationGenerator:
                 return f"Ошибка при обращении к Gemini: {error_msg}"
     
     def _call_openai(self, prompt: str) -> str:
-        """
-        Вызывает OpenAI API
-        """
         if not self.api_key:
             return "Ошибка: OpenAI API ключ не установлен."
         
         try:
-            # Пробуем новый API (v1.0+)
             try:
                 from openai import OpenAI
                 client = OpenAI(api_key=self.api_key)
@@ -255,7 +194,6 @@ class LLMRecommendationGenerator:
                 return response.choices[0].message.content
                 
             except ImportError:
-                # Fallback на старый API
                 import openai
                 openai.api_key = self.api_key
                 
@@ -290,35 +228,19 @@ class LLMRecommendationGenerator:
                 return f"Ошибка при обращении к OpenAI: {error_msg}"
         
     
-    def generate_recommendations(self, 
+    def generate_recommendations(self,
                                  analysis_result: Dict,
                                  user_profile: Optional[Dict] = None) -> Dict[str, List[str]]:
-        """
-        Генерирует рекомендации через LLM
-
-        Args:
-            analysis_result: Результат анализа от SkiAnalyzer
-            user_profile: Профиль пользователя
-
-        Returns:
-            Список рекомендаций
-        """
+        """Генерирует рекомендации через LLM, возвращает errors и actions."""
         prompt = self.generate_prompt(analysis_result, user_profile)
         llm_response = self.call_llm_api(prompt)
-        
-        # Парсим ответ - разбиваем на рекомендации
-        # Парсим ответ на два списка: errors (строки с "-") и actions (строки "1.", "2." и т.д.)
         errors: List[str] = []
         actions: List[str] = []
 
         response_clean = (llm_response or "").strip()
         lines = [ln.strip() for ln in response_clean.split("\n") if ln.strip()]
-
-        # Определяем секцию (ошибки или рекомендации)
         current_section = None
-        
         for line in lines:
-            # Определяем секцию по заголовкам
             low = line.lower().strip(":")
             if low == "ошибки":
                 current_section = "errors"
@@ -326,65 +248,39 @@ class LLMRecommendationGenerator:
             elif low in ["рекомендации", "что делать"]:
                 current_section = "actions"
                 continue
-
-            # ошибки: начинаются с "- "
             if line.startswith("-"):
                 txt = line.lstrip("-").strip()
                 if txt:
                     errors.append(txt)
                 continue
-
-            # рекомендации: начинаются с "1." / "2." / "3." ...
-            if len(line) >= 2 and line[0].isdigit():
-                # поддержка "1." и "1)":
-                if line[1] in [".", ")"]:
-                    txt = line[2:].strip()
-                    if txt:
-                        actions.append(txt)
-                    continue
-            
-            # Если секция определена, добавляем строки в соответствующую секцию
+            if len(line) >= 2 and line[0].isdigit() and line[1] in [".", ")"]:
+                txt = line[2:].strip()
+                if txt:
+                    actions.append(txt)
+                continue
             if current_section == "errors" and line and not line.startswith("-"):
-                # Если это не маркированный список, но мы в секции ошибок, добавляем как ошибку
-                if not any(char.isdigit() for char in line[:3]):  # Не начинается с цифры
+                if not any(char.isdigit() for char in line[:3]):
                     errors.append(line)
             elif current_section == "actions" and line:
-                # Если это не пронумерованный список, но мы в секции рекомендаций
                 if not (len(line) >= 2 and line[0].isdigit() and line[1] in [".", ")"]):
                     actions.append(line)
-
-        # Fallback: если модель не соблюла формат
         if not actions and response_clean:
-            # пусть весь текст станет одной рекомендацией
             actions = [response_clean]
-
-        # Ограничим длину (на всякий случай)
         errors = errors[:5]
         actions = actions[:5]
 
         return {"errors": errors, "actions": actions}
 
 
-# Пример использования
 def example_llm_integration():
-    """Пример интеграции LLM"""
+    """Пример: анализ + LLM-рекомендации."""
     from ski_analyzer.core.analyzer import SkiAnalyzer
-    
-    # Анализируем видео
     analyzer = SkiAnalyzer()
     analysis = analyzer.analyze("path/to/user_angles_resampled.csv")
-    
-    # Генерируем рекомендации через LLM
     llm_gen = LLMRecommendationGenerator(api_key="your-api-key")
-    
-    user_profile = {
-        "level": "средний",
-        "experience": "3 года",
-        "goals": "улучшить технику карвинга"
-    }
-    
-    recommendations = llm_gen.generate_recommendations(analysis, user_profile)
-    
-    for rec in recommendations:
-        print(rec)
+    recommendations = llm_gen.generate_recommendations(
+        analysis,
+        user_profile={"level": "средний", "experience": "3 года", "goals": "карвинг"}
+    )
+    return recommendations
 

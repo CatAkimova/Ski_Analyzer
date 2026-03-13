@@ -1,6 +1,4 @@
-"""
-Модуль для вычисления углов из ключевых точек
-"""
+"""Вычисление углов коленей и корпуса из landmarks."""
 import pandas as pd
 import numpy as np
 from typing import Optional
@@ -12,19 +10,11 @@ from ..config.settings import (
 
 
 class AngleCalculator:
-    """Класс для вычисления углов из landmarks"""
-    
+    """Углы из ключевых точек (колени, корпус)."""
+
     @staticmethod
     def calculate_angle(a: np.ndarray, b: np.ndarray, c: np.ndarray) -> float:
-        """
-        Вычисляет угол между тремя точками (в градусах)
-        
-        Args:
-            a, b, c: Точки, где b - вершина угла
-            
-        Returns:
-            Угол в градусах
-        """
+        """Угол между тремя точками (b — вершина), в градусах."""
         a, b, c = np.array(a), np.array(b), np.array(c)
         ba = a - b
         bc = c - b
@@ -33,31 +23,17 @@ class AngleCalculator:
         return angle
     
     def calculate_angles(self, landmarks_df: pd.DataFrame) -> pd.DataFrame:
-        """
-        Вычисляет углы из DataFrame с landmarks
-        
-        Args:
-            landmarks_df: DataFrame с ключевыми точками
-            
-        Returns:
-            DataFrame с углами
-        """
+        """DataFrame с углами по кадрам из landmarks."""
         angles = []
-        
         for i, row in landmarks_df.iterrows():
-            # Левая нога
             left_hip = [row[f'x_{LEFT_HIP}'], row[f'y_{LEFT_HIP}']]
             left_knee = [row[f'x_{LEFT_KNEE}'], row[f'y_{LEFT_KNEE}']]
             left_ankle = [row[f'x_{LEFT_ANKLE}'], row[f'y_{LEFT_ANKLE}']]
             left_shoulder = [row[f'x_{LEFT_SHOULDER}'], row[f'y_{LEFT_SHOULDER}']]
-            
-            # Правая нога
             right_hip = [row[f'x_{RIGHT_HIP}'], row[f'y_{RIGHT_HIP}']]
             right_knee = [row[f'x_{RIGHT_KNEE}'], row[f'y_{RIGHT_KNEE}']]
             right_ankle = [row[f'x_{RIGHT_ANKLE}'], row[f'y_{RIGHT_ANKLE}']]
             right_shoulder = [row[f'x_{RIGHT_SHOULDER}'], row[f'y_{RIGHT_SHOULDER}']]
-            
-            # Вычисляем углы
             left_knee_angle = self.calculate_angle(left_hip, left_knee, left_ankle)
             right_knee_angle = self.calculate_angle(right_hip, right_knee, right_ankle)
             left_body_angle = self.calculate_angle(left_shoulder, left_hip, left_knee)
@@ -75,23 +51,10 @@ class AngleCalculator:
         return angles_df
     
     def process_file(self, landmarks_path: str, output_path: Optional[str] = None) -> pd.DataFrame:
-        """
-        Обрабатывает файл с landmarks и сохраняет углы
-        
-        Args:
-            landmarks_path: Путь к CSV с landmarks
-            output_path: Путь для сохранения (если None, генерируется автоматически)
-            
-        Returns:
-            DataFrame с углами
-        """
+        """Читает CSV с landmarks, возвращает и при необходимости сохраняет углы."""
         if not Path(landmarks_path).exists():
             raise FileNotFoundError(f"Файл не найден: {landmarks_path}")
-        
-        # Загружаем landmarks
         df = pd.read_csv(landmarks_path, sep=';')
-        
-        # Вычисляем углы
         angles_df = self.calculate_angles(df)
         
         # Сохраняем

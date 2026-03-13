@@ -1,6 +1,4 @@
-"""
-Модуль для построения эталона из множества примеров
-"""
+"""Построение эталона (mean/std) из набора resampled файлов."""
 import pandas as pd
 import numpy as np
 from pathlib import Path
@@ -9,33 +7,18 @@ from ..config.settings import RESULTS_DIR, ANGLES
 
 
 class TemplateBuilder:
-    """Класс для построения эталонных кривых"""
-    
+    """Эталон (mean, std по углам) из списка resampled CSV."""
+
     def build_template(self, resampled_files: List[str], output_path: Optional[str] = None) -> pd.DataFrame:
-        """
-        Строит эталон из множества ресемплированных файлов
-        
-        Args:
-            resampled_files: Список путей к ресемплированным CSV файлам
-            output_path: Путь для сохранения эталона
-            
-        Returns:
-            DataFrame с эталоном (mean и std для каждого угла)
-        """
+        """Строит эталон из списка путей к resampled CSV."""
         if not resampled_files:
             raise ValueError("Список файлов пуст")
-        
-        # Загружаем данные
         data = {angle: [] for angle in ANGLES}
-        
         for f in resampled_files:
             if not Path(f).exists():
                 print(f"⚠ Файл не найден, пропуск: {f}")
                 continue
-            
             df = pd.read_csv(f, sep=';')
-            
-            # Проверяем наличие колонок
             for angle in ANGLES:
                 if angle not in df.columns:
                     raise ValueError(f"В файле {f} отсутствует колонка: {angle}")
@@ -43,10 +26,7 @@ class TemplateBuilder:
         
         if not any(data.values()):
             raise ValueError("Не удалось загрузить данные из файлов")
-        
-        # Строим эталон
         template = pd.DataFrame()
-        
         for angle in ANGLES:
             if not data[angle]:
                 continue
@@ -57,8 +37,6 @@ class TemplateBuilder:
             
             template[f"{angle}_mean"] = mean_curve
             template[f"{angle}_std"] = std_curve
-        
-        # Сохраняем
         if output_path is None:
             output_path = RESULTS_DIR / "template_angles.csv"
         
@@ -68,16 +46,7 @@ class TemplateBuilder:
         return template
     
     def build_from_directory(self, directory: str = None, pattern: str = "*_resampled.csv") -> pd.DataFrame:
-        """
-        Строит эталон из всех файлов в директории, соответствующих паттерну
-        
-        Args:
-            directory: Директория для поиска (по умолчанию RESULTS_DIR)
-            pattern: Паттерн для поиска файлов
-            
-        Returns:
-            DataFrame с эталоном
-        """
+        """Эталон из всех файлов в директории по паттерну."""
         if directory is None:
             directory = RESULTS_DIR
         

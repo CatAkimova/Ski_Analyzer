@@ -1,6 +1,4 @@
-"""
-Модуль для извлечения позы из видео с помощью YOLO
-"""
+"""Извлечение позы из видео (YOLOv8-pose)."""
 import cv2
 import pandas as pd
 import os
@@ -10,46 +8,25 @@ from typing import Optional, Tuple
 
 
 class PoseExtractor:
-    """Класс для извлечения ключевых точек позы из видео"""
-    
+    """Извлечение ключевых точек позы из видео (YOLO)."""
+
     def __init__(self, model_path: str = "yolov8n-pose.pt"):
-        """
-        Инициализация экстрактора позы
-        
-        Args:
-            model_path: Путь к модели YOLO
-        """
         if not os.path.exists(model_path):
             raise FileNotFoundError(f"Модель не найдена: {model_path}")
         self.model = YOLO(model_path)
     
-    def extract_pose(self, video_path: str, 
+    def extract_pose(self, video_path: str,
                      output_csv: Optional[str] = None,
                      output_video: Optional[str] = None,
                      show: bool = False) -> Tuple[pd.DataFrame, Optional[str]]:
-        """
-        Извлекает позу из видео
-        
-        Args:
-            video_path: Путь к входному видео
-            output_csv: Путь для сохранения CSV с landmarks (если None, генерируется автоматически)
-            output_video: Путь для сохранения видео с аннотациями (если None, не сохраняется)
-            show: Показывать ли видео во время обработки
-            
-        Returns:
-            Tuple[DataFrame, Optional[str]]: DataFrame с landmarks и путь к сохраненному CSV
-        """
+        """Извлекает позу из видео, возвращает DataFrame с landmarks и путь к CSV."""
         if not os.path.exists(video_path):
             raise FileNotFoundError(f"Видео не найдено: {video_path}")
-        
-        # Генерируем имена файлов если не указаны
         base_name = Path(video_path).stem
         if output_csv is None:
             output_csv = f"{base_name}_landmarks.csv"
         if output_video is None:
             output_video = f"{base_name}_pose_output.mp4"
-        
-        # Открываем видео
         cap = cv2.VideoCapture(video_path)
         if not cap.isOpened():
             raise ValueError(f"Не удалось открыть видео: {video_path}")
