@@ -1,0 +1,21 @@
+Method: 1D CNN on angle sequences (channels=4, T=100)
+Landmarks dir: /Users/ekaterinaakimova/Documents/GitHub/Ski_Analyzer/results_yolov8x
+Train (fit) samples: 32
+Test samples: 15
+Classes: ['0.0', '1.0']
+Device: cpu
+Accuracy: 0.7333
+
+Confusion matrix:
+[[6 1]
+ [3 5]]
+
+Classification report:
+              precision    recall  f1-score   support
+
+         0.0     0.6667    0.8571    0.7500         7
+         1.0     0.8333    0.6250    0.7143         8
+
+    accuracy                         0.7333        15
+   macro avg     0.7500    0.7411    0.7321        15
+weighted avg     0.7556    0.7333    0.7310        15

@@ -6,14 +6,17 @@ from pathlib import Path
 from ultralytics import YOLO
 from typing import Optional, Tuple
 
+from ski_analyzer.config.settings import YOLO_MODEL_PATH
+
 
 class PoseExtractor:
     """Извлечение ключевых точек позы из видео (YOLO)."""
 
-    def __init__(self, model_path: str = "yolov8n-pose.pt"):
-        if not os.path.exists(model_path):
-            raise FileNotFoundError(f"Модель не найдена: {model_path}")
-        self.model = YOLO(model_path)
+    def __init__(self, model_path: Optional[str] = None):
+        path = model_path if model_path is not None else str(YOLO_MODEL_PATH)
+        if not os.path.exists(path):
+            raise FileNotFoundError(f"Модель не найдена: {path}")
+        self.model = YOLO(path)
     
     def extract_pose(self, video_path: str,
                      output_csv: Optional[str] = None,
@@ -97,4 +100,3 @@ class PoseExtractor:
             print(f"✓ Видео с аннотациями сохранено в: {output_video}")
         
         return df, output_csv
-

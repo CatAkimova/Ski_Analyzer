@@ -75,6 +75,30 @@ logs/
 *.tmp
 *.temp
 .cache/
+.matplotlib/
+.pytest_cache/
+
+# Локальные копии библиотек под скрипты (ставьте зависимости через pip)
+docx_vendor/
+pdf_vendor/
+pptx_vendor/
+_pdf_vendor/
+test_vendor/
+_pytest_cov_vendor/
+_train_vendor/
+_pptx_build/
+_tmp_docx_patch/
+htmlcov/
+tools/tectonic*
+.coverage
+
+# ВКР / LaTeX / черновики (не часть сервиса)
+thesis_latex/
+vkr_latex/
+vkr_*/
+docs/predzashchita*
+*.docx
+*.pptx
 
 # OS
 Thumbs.db

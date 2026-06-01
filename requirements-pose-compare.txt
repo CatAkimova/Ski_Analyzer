@@ -1,0 +1,4 @@
+# Опционально: сравнение YOLO-pose с MediaPipe (scripts/compare_pose_backends.py)
+# 0.10.33: в колесе бывает битый тестовый .py → pip падает на compileall; ставь так:
+#   pip install -r requirements-pose-compare.txt --no-compile
+mediapipe==0.10.14

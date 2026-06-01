@@ -1,9 +1,1 @@
-"""
-ML модули для обучения моделей
-"""
-from .dataset_generator import VideoAugmenter
-
-__all__ = ['VideoAugmenter']
-
-
-
+"""Вспомогательные модули для обучения ML по углам."""

@@ -6,8 +6,16 @@ scipy>=1.10.0
 matplotlib>=3.7.0
 torch>=2.0.0
 torchvision>=0.15.0
+scikit-learn>=1.4.0
 
 # Telegram-бот и API
 pyTelegramBotAPI>=4.14.0
 requests>=2.28.0
 python-dotenv>=1.0.0
+
+# HTTP API и тесты
+fastapi>=0.100.0
+uvicorn[standard]>=0.22.0
+pytest>=7.4.0
+pytest-cov>=4.1.0
+httpx>=0.25.0

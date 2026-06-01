@@ -1,0 +1,19 @@
+Landmarks dir: /Users/ekaterinaakimova/Documents/GitHub/Ski_Analyzer/results_yolov8m
+Train samples: 32
+Test samples: 15
+Features: 40
+Accuracy: 0.7333
+
+Confusion matrix:
+[[4 3]
+ [1 7]]
+
+Classification report:
+              precision    recall  f1-score   support
+
+         0.0     0.8000    0.5714    0.6667         7
+         1.0     0.7000    0.8750    0.7778         8
+
+    accuracy                         0.7333        15
+   macro avg     0.7500    0.7232    0.7222        15
+weighted avg     0.7467    0.7333    0.7259        15

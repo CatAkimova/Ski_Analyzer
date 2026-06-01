@@ -9,7 +9,9 @@ from dotenv import load_dotenv
 
 from ski_analyzer.utils.llm_recommendations import LLMRecommendationGenerator
 
-load_dotenv()
+# Always load .env from repository root and override inherited shell env.
+ENV_PATH = Path(__file__).resolve().parents[2] / ".env"
+load_dotenv(dotenv_path=ENV_PATH, override=True)
 
 # Токен бота из переменной окружения TELEGRAM_BOT_TOKEN
 BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")

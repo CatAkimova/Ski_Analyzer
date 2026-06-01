@@ -10,8 +10,8 @@ RESULTS_DIR = BASE_DIR / "results"
 VIDEOS_DIR = BASE_DIR / "Ski.Videos"
 TEMPLATE_FILE = RESULTS_DIR / "template_angles.csv"
 
-# Настройки обработки видео
-YOLO_MODEL_PATH = BASE_DIR / "yolov8n-pose.pt"
+# Настройки обработки видео (yolov8x-pose — максимальное качество v8-pose; медленнее и тяжелее RAM/GPU)
+YOLO_MODEL_PATH = BASE_DIR / "yolov8x-pose.pt"
 VIDEO_OUTPUT_DIR = VIDEOS_DIR
 
 # Настройки ресемплинга
